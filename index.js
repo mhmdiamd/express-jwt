@@ -1,11 +1,13 @@
 import express from 'express';
 import dotenv from 'dotenv';
 import jwt from 'jsonwebtoken';
+import cors from 'cors';
 dotenv.config();
 
 const app = express();
 
 app.use(express.json());
+app.use(cors());
 
 const users = [
   {
@@ -70,7 +72,6 @@ app.post('/auth/login', (req, res) => {
   if (user) {
     const accessToken = generateAccessToken(user);
     const refreshToken = generateRefreshToken(user);
-    console.log(refreshToken);
     refreshTokens.push(refreshToken);
 
     const { password, ...others } = user;
@@ -112,11 +113,18 @@ const verify = (req, res, next) => {
 
 app.delete('/api/users/:userId', verify, (req, res) => {
   const { password, ...others } = users.find((user) => user.id == req.user.id);
-  res.status(200).json({
-    success: true,
-    status: 200,
-    data: { ...others },
-  });
+
+  if (req.user.id == req.params.userId || req.user.isAdmin) {
+    res.status(200).json({
+      success: true,
+      status: 200,
+      data: { ...others },
+    });
+  } else {
+    res.status(401).json({
+      message: 'You are not allowed!',
+    });
+  }
 });
 
 app.post('/api/logout', verify, (req, res) => {
@@ -125,6 +133,6 @@ app.post('/api/logout', verify, (req, res) => {
   res.status(200).json('you are logout!');
 });
 
-app.listen(3000, () => {
+app.listen(8800, () => {
   console.log('Backend has Running!');
 });
